@@ -1,19 +1,3 @@
-# import boto3
-# import os
-# import sys
-
-# client = boto3.client('s3')
-# local_path = "C:/Users/parth/Downloads/test"
-# bucketname = "pmalladi-program3"
-
-# for path, dirs, files in os.walk(local_path):
-#     for file in files:
-#         file_s3 = os.path.normpath(path + '/' + file)
-#         file_local = os.path.join(path, file)
-#         print("Upload:", file_local, "to target:", file_s3, end="")
-#         client.upload_file(file_local, bucketname, file_s3)
-#         print(" ...Success")
-
 import boto3
 import os
 
@@ -44,3 +28,47 @@ for path, _, files in os.walk(local_path):
         print("Success")
 
 print("Upload complete!")
+
+###############################################################################################################################
+
+# Initialize S3 client
+s3 = boto3.client('s3')
+
+# Define bucket and folder to download
+bucket_name = "pmalladi-program3"
+s3_folder = "test/"  # S3 folder prefix (must end with '/')
+
+# Define local path to save files
+local_path = "C:/Users/parth/Downloads/store"  # Change this to your desired local folder
+
+# Ensure local path exists
+if not os.path.exists(local_path):
+    os.makedirs(local_path)
+
+# List objects in the specified S3 folder
+response = s3.list_objects_v2(Bucket=bucket_name, Prefix=s3_folder)
+
+if 'Contents' in response:
+    for obj in response['Contents']:
+        s3_key = obj['Key']  # Full S3 key (including path)
+        
+        # Remove the base folder prefix to get the relative path
+        relative_path = os.path.relpath(s3_key, s3_folder)
+
+        # Construct full local path
+        local_file_path = os.path.join(local_path, relative_path)
+        local_file_path = local_file_path.replace("/", os.sep)  # Ensure correct path separator
+
+        # Create local directories if they don’t exist
+        os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+
+        print(f"Downloading {s3_key} to {local_file_path} ...", end=" ")
+
+        # Download the file
+        s3.download_file(bucket_name, s3_key, local_file_path)
+
+        print("Success")
+
+    print("Download complete!")
+else:
+    print(f"No files found in s3://{bucket_name}/{s3_folder}")
