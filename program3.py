@@ -1,74 +1,99 @@
-import boto3
 import os
+import sys
+import boto3
 
-# Initialize the S3 client
-client = boto3.client('s3')
+def createBucket(bucketName):
+    s3 = boto3.client("s3")
 
-# Define the local folder and S3 bucket
-local_path = "C:/Users/parth/Downloads/test"  # Change this to your actual folder
-bucket_name = "pmalladi-program3"
+    for bucket in s3.list_buckets()["Buckets"]:
+        if bucket["Name"] == bucketName:
+            print("bucket " + bucketName + " exists")
+            return
 
-# Extract only the folder name (e.g., "test")
-base_folder_name = os.path.basename(local_path)
+    s3.create_bucket(Bucket=bucketName)
+    print(bucketName + " created")
 
-# Upload files while keeping the folder structure under "test/" in S3
-for path, _, files in os.walk(local_path):
-    for file in files:
-        file_local = os.path.join(path, file)
-        
-        # Get relative path and prepend base_folder_name
-        relative_path = os.path.relpath(file_local, local_path)  # Get path relative to "test"
-        file_s3 = os.path.join(base_folder_name, relative_path).replace("\\", "/")  # Ensure forward slashes
+# def backup(localPath, awsPath):
+#     # create/check for S3 bucket
+#     bucketName = awsPath.split("::")[0]
+#     createBucket(bucketName)
 
-        print(f"Uploading {file_local} to s3://{bucket_name}/{file_s3} ...", end=" ")
-        
-        # Upload file to S3
-        client.upload_file(file_local, bucket_name, file_s3)
-        
-        print("Success")
+#     baseFolder = awsPath.split("::")[1]
+#     if (baseFolder == ""):
+#         baseFolder = os.path.basename(localPath)
+    
+#     print("baseFolder: " + baseFolder)
 
-print("Upload complete!")
+#     client = boto3.client("s3")
 
-###############################################################################################################################
+#     for path, dir, files in os.walk(localPath):
+#         for file in files:
+#             localFile = os.path.join(path, file)
+#             relativePath = os.path.relpath(localFile, localPath)
+#             s3File = os.path.join(baseFolder, relativePath)
+#             client.upload_file(localFile, bucketName, s3File)
+    
+#     print("backup complete")
 
-# Initialize S3 client
-s3 = boto3.client('s3')
+def backup(localPath, awsPath):
+    """Uploads localPath contents into the correct S3 structure based on awsPath."""
+    # Extract bucket name and folder path
+    parts = awsPath.split("::")
+    bucketName = parts[0]
+    
+    # Ensure the bucket exists
+    createBucket(bucketName)
 
-# Define bucket and folder to download
-bucket_name = "pmalladi-program3"
-s3_folder = "test/"  # S3 folder prefix (must end with '/')
+    # Determine the base S3 folder
+    baseFolder = parts[1] if len(parts) > 1 and parts[1] else os.path.basename(localPath)
 
-# Define local path to save files
-local_path = "C:/Users/parth/Downloads/store"  # Change this to your desired local folder
+    # Ensure that the local folder name (e.g., "test") is included in the structure
+    localFolderName = os.path.basename(localPath)
+    fullS3Path = os.path.join(baseFolder, localFolderName).replace("\\", "/")  # Ensures "lmao/test/"
 
-# Ensure local path exists
-if not os.path.exists(local_path):
-    os.makedirs(local_path)
+    print(f"Uploading to S3 bucket: {bucketName}, inside folder: {fullS3Path}")
 
-# List objects in the specified S3 folder
-response = s3.list_objects_v2(Bucket=bucket_name, Prefix=s3_folder)
+    client = boto3.client("s3")
 
-if 'Contents' in response:
-    for obj in response['Contents']:
-        s3_key = obj['Key']  # Full S3 key (including path)
-        
-        # Remove the base folder prefix to get the relative path
-        relative_path = os.path.relpath(s3_key, s3_folder)
+    # Walk through local directory and upload
+    for path, _, files in os.walk(localPath):
+        for file in files:
+            localFile = os.path.join(path, file)
+            relativePath = os.path.relpath(localFile, localPath)
+            
+            # Ensure proper folder structure inside S3
+            s3File = os.path.join(fullS3Path, relativePath).replace("\\", "/")  # Enforce "lmao/test/..."
 
-        # Construct full local path
-        local_file_path = os.path.join(local_path, relative_path)
-        local_file_path = local_file_path.replace("/", os.sep)  # Ensure correct path separator
+            print(f"Uploading {localFile} to s3://{bucketName}/{s3File} ...")
+            client.upload_file(localFile, bucketName, s3File)
+    
+    print("Backup complete.")
 
-        # Create local directories if they don’t exist
-        os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+def restore(localPath, awsPath):
+    # create/check for S3 bucket
+    bucketName = awsPath.split("::")[0]
+    createBucket(bucketName)
 
-        print(f"Downloading {s3_key} to {local_file_path} ...", end=" ")
+if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        print("Usage:")
+        print("py program3.py restore <AWS bucket-name::directory-name> <local directory name>")
+        print("or")
+        print("py program3.py backup <local directory name> <AWS bucket-name::directory-name>")
+        sys.exit(1)
+    
+    action = sys.argv[1]
+    localPath = ""
+    awsPath = ""
 
-        # Download the file
-        s3.download_file(bucket_name, s3_key, local_file_path)
-
-        print("Success")
-
-    print("Download complete!")
-else:
-    print(f"No files found in s3://{bucket_name}/{s3_folder}")
+    if action == "backup":
+        localPath = sys.argv[2]
+        awsPath = sys.argv[3]
+        backup(localPath, awsPath)
+    elif action == "restore":
+        localPath = sys.argv[3]
+        awsPath = sys.argv[2]
+        restore(localPath, awsPath)
+    else:
+        print("action: " + action + ", does not exist")
+        sys.exit(1)
