@@ -2,20 +2,25 @@ import os
 import sys
 import boto3
 
+# helper function to check or create a bucket
 def createBucket(bucketName, action):
     s3 = boto3.client("s3")
 
+    # check if bucket already exists and return true if it does
     for bucket in s3.list_buckets()["Buckets"]:
         if bucket["Name"] == bucketName:
             print("bucket " + bucketName + " exists")
             return True
 
+    # return false if bucket doesnt exist
     if (action != "backup"):
         return False
     
+    # create bucket if it doesnt exist
     s3.create_bucket(Bucket=bucketName)
     print(bucketName + " created")
 
+# function to backup to AWS
 def backup(localPath, awsPath):
     # extract bucket name and file path
     bucketName = awsPath.split("::")[0]
@@ -41,10 +46,11 @@ def backup(localPath, awsPath):
 
             # upload to S3 bucket
             client.upload_file(localFile, bucketName, s3File)
+            print(f"Backing up {localFile} to {bucketName}::{s3File}")
     
-    print("backup complete")
+    print("BACKUP COMPLETE")
 
-# py program3.py restore pmalladi-program3::wayment C:/Users/parth/Downloads
+# function to restore from AWS
 def restore(localPath, awsPath):
     # extract bucket name and file path
     bucketName = awsPath.split("::")[0]
@@ -75,13 +81,17 @@ def restore(localPath, awsPath):
         # create local path
         localFilePath = os.path.join(localPath, relativePath)
         os.makedirs(os.path.dirname(localFilePath), exist_ok=True)
+
+        # restore from S3 bucket
         client.download_file(bucketName, key, localFilePath)
+        print(f"Restoring from {bucketName}::{key} to {localFilePath}")
     else:
         print("S3 Bucket path does not exist")
         return
 
-    print("restore complete")
+    print("RESTORE COMPLETE")
 
+# main function
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Usage:")
@@ -95,11 +105,11 @@ if __name__ == "__main__":
     awsPath = ""
 
     if action == "backup":
-        localPath = sys.argv[2]
+        localPath = sys.argv[2].replace("\\", "/")
         awsPath = sys.argv[3]
         backup(localPath, awsPath)
     elif action == "restore":
-        localPath = sys.argv[3]
+        localPath = sys.argv[3].replace("\\", "/")
         awsPath = sys.argv[2]
         restore(localPath, awsPath)
     else:
