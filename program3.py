@@ -13,28 +13,6 @@ def createBucket(bucketName):
     s3.create_bucket(Bucket=bucketName)
     print(bucketName + " created")
 
-# def backup(localPath, awsPath):
-#     # create/check for S3 bucket
-#     bucketName = awsPath.split("::")[0]
-#     createBucket(bucketName)
-
-#     baseFolder = awsPath.split("::")[1]
-#     if (baseFolder == ""):
-#         baseFolder = os.path.basename(localPath)
-    
-#     print("baseFolder: " + baseFolder)
-
-#     client = boto3.client("s3")
-
-#     for path, dir, files in os.walk(localPath):
-#         for file in files:
-#             localFile = os.path.join(path, file)
-#             relativePath = os.path.relpath(localFile, localPath)
-#             s3File = os.path.join(baseFolder, relativePath)
-#             client.upload_file(localFile, bucketName, s3File)
-    
-#     print("backup complete")
-
 def backup(localPath, awsPath):
     """Uploads localPath contents into the correct S3 structure based on awsPath."""
     # Extract bucket name and folder path
@@ -45,7 +23,8 @@ def backup(localPath, awsPath):
     createBucket(bucketName)
 
     # Determine the base S3 folder
-    baseFolder = parts[1] if len(parts) > 1 and parts[1] else os.path.basename(localPath)
+    baseFolder = parts[1] if len(parts) > 1 and parts[1] else ""
+    print(baseFolder)
 
     # Ensure that the local folder name (e.g., "test") is included in the structure
     localFolderName = os.path.basename(localPath)
