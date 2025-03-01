@@ -46,7 +46,7 @@ def backup(localPath, awsPath):
 
             # upload to S3 bucket
             client.upload_file(localFile, bucketName, s3File)
-            print(f"Backing up {localFile} to {bucketName}::{s3File}")
+            print(f"Backing up {localFile.replace("\\", "/")} to {bucketName}::{s3File}")
     
     print("BACKUP COMPLETE")
 
@@ -75,16 +75,17 @@ def restore(localPath, awsPath):
 
     # get S3 objects
     if "Contents" in response:
-        key = response["Contents"][0]["Key"]
-        relativePath = os.path.relpath(key, basePath)
+        for cont in response["Contents"]:
+            key = cont["Key"]
+            relativePath = os.path.relpath(key, basePath)
 
-        # create local path
-        localFilePath = os.path.join(localPath, relativePath)
-        os.makedirs(os.path.dirname(localFilePath), exist_ok=True)
+            # create local path
+            localFilePath = os.path.join(localPath, relativePath)
+            os.makedirs(os.path.dirname(localFilePath), exist_ok=True)
 
-        # restore from S3 bucket
-        client.download_file(bucketName, key, localFilePath)
-        print(f"Restoring from {bucketName}::{key} to {localFilePath}")
+            # restore from S3 bucket
+            client.download_file(bucketName, key, localFilePath)
+            print(f"Restoring from {bucketName}::{key} to {localFilePath.replace("\\", "/")}")
     else:
         print("S3 Bucket path does not exist")
         return
@@ -105,13 +106,17 @@ if __name__ == "__main__":
     awsPath = ""
 
     if action == "backup":
-        localPath = sys.argv[2].replace("\\", "/")
+        localPath = sys.argv[2]
         awsPath = sys.argv[3]
         backup(localPath, awsPath)
     elif action == "restore":
-        localPath = sys.argv[3].replace("\\", "/")
+        localPath = sys.argv[3]
         awsPath = sys.argv[2]
         restore(localPath, awsPath)
     else:
         print("action: " + action + ", does not exist")
         sys.exit(1)
+
+# py program3.py backup C:/Users/parth/Downloads/Folder partha-program-css436::
+
+# py program3.py restore partha-program-css436:: C:/Users/parth/Downloads
