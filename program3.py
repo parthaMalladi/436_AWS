@@ -96,9 +96,9 @@ def restore(localPath, awsPath):
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Usage:")
-        print("py program3.py restore <AWS bucket-name::directory-name> <local directory name>")
+        print("py program3.py restore <AWS-bucket-name::directory-name> <local-directory-name>")
         print("or")
-        print("py program3.py backup <local directory name> <AWS bucket-name::directory-name>")
+        print("py program3.py backup <local-directory-name> <AWS-bucket-name::directory-name>")
         sys.exit(1)
     
     action = sys.argv[1]
