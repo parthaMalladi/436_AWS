@@ -116,7 +116,3 @@ if __name__ == "__main__":
     else:
         print("action: " + action + ", does not exist")
         sys.exit(1)
-
-# py program3.py backup C:/Users/parth/Downloads/Folder partha-program-css436::
-
-# py program3.py restore partha-program-css436:: C:/Users/parth/Downloads
